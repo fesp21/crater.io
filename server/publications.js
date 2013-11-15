@@ -3,7 +3,7 @@ var privacyOptions = { // false means private
   isAdmin: false,
   emails: false,
   notifications: false,
-  invitesCount: false,
+  inviteCount: false,
   'profile.email': false,
   'services.twitter.accessToken': false,
   'services.twitter.accessTokenSecret': false,
@@ -31,6 +31,7 @@ Meteor.publish('singleUser', function(userIdOrSlug) {
     // if we find something when treating the argument as an ID, return that; else assume it's a slug
     return findById.count() ? findById : findBySlug;
   }
+  return [];
 });
 
 // Publish authors of the current post and its comments
@@ -38,14 +39,20 @@ Meteor.publish('singleUser', function(userIdOrSlug) {
 Meteor.publish('postUsers', function(postId) {
   if(canViewById(this.userId)){
     // publish post author and post commenters
-    var post = Posts.findOne(postId);
-    var comments = Comments.find({post: post._id}).fetch();
-    // get IDs from all commenters on the post, plus post author's ID
-    var users = _.pluck(comments, "userId");
-    users.push(post.userId);
-    users = _.unique(users);
+    var post = Posts.findOne(postId),
+        users = [];
+        
+    if(post) {
+      var comments = Comments.find({post: post._id}).fetch();
+      // get IDs from all commenters on the post, plus post author's ID
+      users = _.pluck(comments, "userId");
+      users.push(post.userId);
+      users = _.unique(users);
+    }
+    
     return Meteor.users.find({_id: {$in: users}}, {fields: privacyOptions});
   }
+  return [];
 });
 
 // Publish author of the current comment
@@ -53,8 +60,9 @@ Meteor.publish('postUsers', function(postId) {
 Meteor.publish('commentUser', function(commentId) {
   if(canViewById(this.userId)){
     var comment = Comments.findOne(commentId);
-    return Meteor.users.find({_id: comment.userId}, {fields: privacyOptions});
+    return Meteor.users.find({_id: comment && comment.userId}, {fields: privacyOptions});
   }
+  return [];
 });
 
 // Publish all the users that have posted the currently displayed list of posts
@@ -65,6 +73,7 @@ Meteor.publish('postsListUsers', function(find, options) {
     var userIds = _.pluck(posts.fetch(), 'userId');
     return Meteor.users.find({_id: {$in: userIds}}, {fields: privacyOptions, multi: true});
   }
+  return [];
 });
 
 // Publish all users
@@ -75,14 +84,18 @@ Meteor.publish('allUsers', function(find, options) {
       options = _.extend(options, {fields: privacyOptions});
     return Meteor.users.find(find, options);  
   }
+  return [];
 });
 
 // publish all users for admins to make autocomplete work
 // TODO: find a better way
 
 Meteor.publish('allUsersAdmin', function() {
-  if (isAdminById(this.userId))
-    return Meteor.users.find();  
+  if (isAdminById(this.userId)) {
+    return Meteor.users.find();
+  } else {
+    return [];
+  }
 });
 
 // -------------------------------------------- Posts -------------------------------------------- //
@@ -93,6 +106,7 @@ Meteor.publish('singlePost', function(id) {
   if(canViewById(this.userId)){
     return Posts.find(id);
   }
+  return [];
 });
 
 // Publish the post related to the current comment
@@ -100,8 +114,9 @@ Meteor.publish('singlePost', function(id) {
 Meteor.publish('commentPost', function(commentId) {
   if(canViewById(this.userId)){
     var comment = Comments.findOne(commentId);
-    return Posts.find(comment.post);
+    return Posts.find({_id: comment && comment.post});
   }
+  return [];
 });
 
 // Publish a list of posts
@@ -121,6 +136,7 @@ Meteor.publish('postsList', function(find, options) {
 
     return posts;
   }
+  return [];
 });
 
 
@@ -133,6 +149,7 @@ Meteor.publish('postComments', function(postId) {
   if(canViewById(this.userId)){  
     return Comments.find({post: postId});
   }
+  return [];
 });
 
 // Publish a single comment
@@ -141,12 +158,16 @@ Meteor.publish('singleComment', function(commentId) {
   if(canViewById(this.userId)){
     return Comments.find(commentId);
   }
+  return [];
 });
 
 // -------------------------------------------- Other -------------------------------------------- //
 
 Meteor.publish('settings', function() {  
-  return Settings.find();
+  return Settings.find({}, {fields:{
+    mailChimpAPIKey: false,
+    mailChimpListId: false
+  }});
 });
 
 Meteor.publish('notifications', function() {
@@ -154,10 +175,12 @@ Meteor.publish('notifications', function() {
   if(canViewById(this.userId)){
     return Notifications.find({userId:this.userId});
   }
+  return [];
 });
 
 Meteor.publish('categories', function() {
   if(canViewById(this.userId)){
     return Categories.find();
   }
+  return [];
 });

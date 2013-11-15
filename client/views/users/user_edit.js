@@ -9,10 +9,10 @@ Template.user_edit.helpers({
     return getEmail(this);
   },
   getTwitter: function(){
-    return getTwitterName(this);
+    return getTwitterName(this) || "";
   },
   getGitHub: function(){
-    return getGitHubName(this);
+    return getGitHubName(this) || "";
   },
   profileUrl: function(){
     return Meteor.absoluteUrl()+"users/"+this.slug;
@@ -49,7 +49,7 @@ Template.user_edit.events = {
       "profile.notifications.posts": $('input[name=notifications_posts]:checked').length,
       "profile.notifications.comments": $('input[name=notifications_comments]:checked').length,
       "profile.notifications.replies": $('input[name=notifications_replies]:checked').length,
-      "invitesCount": parseInt($target.find('[name=invitesCount]').val())
+      "inviteCount": parseInt($target.find('[name=inviteCount]').val())
     };
 
     var old_password = $target.find('[name=old_password]').val();
