@@ -67,10 +67,11 @@ Meteor.publish('commentUser', function(commentId) {
 
 // Publish all the users that have posted the currently displayed list of posts
 
-Meteor.publish('postsListUsers', function(find, options) {
+Meteor.publish('postsListUsers', function(terms) {
   if(canViewById(this.userId)){
-    var posts = Posts.find(find, options);
-    var userIds = _.pluck(posts.fetch(), 'userId');
+    var parameters = getParameters(terms),
+        posts = Posts.find(parameters.find, parameters.options),
+        userIds = _.pluck(posts.fetch(), 'userId');
     return Meteor.users.find({_id: {$in: userIds}}, {fields: privacyOptions, multi: true});
   }
   return [];
@@ -78,11 +79,12 @@ Meteor.publish('postsListUsers', function(find, options) {
 
 // Publish all users
 
-Meteor.publish('allUsers', function(find, options) {
+Meteor.publish('allUsers', function(filterBy, sortBy, limit) {
   if(canViewById(this.userId)){
+    var parameters = getUsersParameters(filterBy, sortBy, limit);
     if (!isAdminById(this.userId)) // if user is not admin, filter out sensitive info
-      options = _.extend(options, {fields: privacyOptions});
-    return Meteor.users.find(find, options);  
+      parameters.options = _.extend(parameters.options, {fields: privacyOptions});
+    return Meteor.users.find(parameters.find, parameters.options);  
   }
   return [];
 });
@@ -121,33 +123,22 @@ Meteor.publish('commentPost', function(commentId) {
 
 // Publish a list of posts
 
-Meteor.publish('postsList', function(find, options, query) {
+Meteor.publish('postsList', function(terms) {
   if(canViewById(this.userId)){
-    options = options || {};
-    if (query){
-      var posts = Posts.find({$or: [
-          {headline: {$regex: query, $options: 'i'}},
-          {url: {$regex: query, $options: 'i'}},
-          {body: {$regex: query, $options: 'i'}}
-        ]}, options);
-    } else {
-      var posts = Posts.find(find, options);
-    }
-
+    var parameters = getParameters(terms),
+        posts = Posts.find(parameters.find, parameters.options);
+    if(terms.query)
+      logSearch(terms.query);
     // console.log('//-------- Subscription Parameters:');
-    // console.log(find);
-    // console.log(options);
+    // console.log(parameters.find);
+    // console.log(parameters.options);
     // console.log('Found '+posts.fetch().length+ ' posts:');
     // posts.rewind();
     // console.log(_.pluck(posts.fetch(), 'headline'));
-    // posts.rewind();
-
     return posts;
   }
   return [];
 });
-
-
 
 // -------------------------------------------- Comments -------------------------------------------- //
 
@@ -171,11 +162,17 @@ Meteor.publish('singleComment', function(commentId) {
 
 // -------------------------------------------- Other -------------------------------------------- //
 
-Meteor.publish('settings', function() {  
-  return Settings.find({}, {fields:{
-    mailChimpAPIKey: false,
-    mailChimpListId: false
-  }});
+Meteor.publish('settings', function() {
+  var options = {};
+  if(!isAdminById(this.userId)){
+    options = _.extend(options, {
+      fields: {
+        mailChimpAPIKey: false,
+        mailChimpListId: false
+      }
+    });
+  }
+  return Settings.find({}, options);
 });
 
 Meteor.publish('notifications', function() {
@@ -189,6 +186,14 @@ Meteor.publish('notifications', function() {
 Meteor.publish('categories', function() {
   if(canViewById(this.userId)){
     return Categories.find();
+  }
+  return [];
+});
+
+Meteor.publish('searches', function(limit) {
+  var limit = typeof limit === undefined ? 20 : limit; 
+  if(isAdminById(this.userId)){
+   return Searches.find({}, {limit: limit, sort: {timestamp: -1}});
   }
   return [];
 });

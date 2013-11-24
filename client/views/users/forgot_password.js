@@ -1,4 +1,4 @@
-Template.forgot_password.events = {
+Template.forgot_password.events({
   'click input[type=submit]': function(e){
     e.preventDefault();
     var options=new Object();
@@ -7,8 +7,8 @@ Template.forgot_password.events = {
       if(error){
         console.log(error);
       }else{
-        throwError("Password reset link sent!");
+        throwError(i18n.t("Password reset link sent!"));
       }
     });
   }
-};
+});

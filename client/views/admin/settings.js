@@ -19,7 +19,7 @@ Template.settings.helpers({
   }
 });
 
-Template.settings.events = {
+Template.settings.events({
   'click input[type=submit]': function(e){
     e.preventDefault();
     if(!Meteor.user()) throw 'You must be logged in.';
@@ -29,9 +29,11 @@ Template.settings.events = {
         throwError("Settings have been created");
       },
       function(error) {
-        if(error) console.log(error);
-          throwError("Settings have been updated");
+        if(error)
+          console.log(error);
+        throwError("Settings have been updated");
+
       }
     );
   }
-};
+});

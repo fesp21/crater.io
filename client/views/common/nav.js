@@ -34,17 +34,7 @@ Template.nav.helpers({
   },
   categoryLink: function () {
     return getCategoryUrl(this.slug);
-  },
-  query: function () {
-    return Session.get("query");
-  },
-  queryEmpty: function () {
-    return !!Session.get("query") ? '' : 'empty';
   }
-});
-
-Template.nav.preserve({
-  'input#search': function (node) { return node.id; }
 });
 
 Template.nav.rendered=function(){
@@ -57,7 +47,7 @@ Template.nav.rendered=function(){
   }
 };
 
-Template.nav.events = {
+Template.nav.events({
   'click #logout': function(e){
     e.preventDefault();
     Meteor.logout();
@@ -69,21 +59,5 @@ Template.nav.events = {
   'click .login-header': function(e){
     e.preventDefault();
     Router.go('/account');
-  },
-  'click .search-clear': function (e) {
-    e.preventDefault();
-    Session.set('query', '');
-    $('.search').addClass('empty');
-  },
-  'keyup .search-field': function(e){
-    e.preventDefault();
-    var val = $(e.target).val(),
-        $search = $('.search');
-    if(val==''){
-      $search.addClass('empty');
-    }else{
-      $search.removeClass('empty');
-    }
-    Session.set('query', val);
   }
-};
+});

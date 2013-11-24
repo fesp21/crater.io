@@ -164,26 +164,12 @@
 		border-radius: 20px;
 		border: 0px;
 		width: 100px;
+		-webkit-transition: 0.2s all;
+		-moz-transition: 0.2s all;
 		background: white;
 		&:focus{
 			outline:none;
 		}
-	}
-	.search-clear{
-		display: block;
-		background: black(0.15);
-		@include border-radius(50%);
-		font-weight: bold;
-		position: absolute;
-		right: 5px;
-		top: 50%;
-		margin-top: -9px;
-		font-size: 12px;
-		height: 16px;
-		width: 16px;
-		text-align: center;
-		line-height: 16px;
-		z-index: 1000;
 	}
 	&.empty{
 		.search-field{

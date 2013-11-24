@@ -26,14 +26,14 @@ Template.post_submit.rendered = function(){
 
 }
 
-Template.post_submit.events = {
+Template.post_submit.events({
   'click input[type=submit]': function(e, instance){
     e.preventDefault();
 
     $(e.target).addClass('disabled');
 
     if(!Meteor.user()){
-      throwError('You must be logged in.');
+      throwError(i18n.t('You must be logged in.'));
       return false;
     }
 
@@ -80,9 +80,8 @@ Template.post_submit.events = {
         Router.go('/posts/'+post.postId);
       }
     });
-  }
-
-  ,'click .get-title-link': function(e){
+  },
+  'click .get-title-link': function(e){
     e.preventDefault();
     var url=$("#url").val();
     $(".get-title-link").addClass("loading");
@@ -101,4 +100,4 @@ Template.post_submit.events = {
     }
   }
 
-};
+});

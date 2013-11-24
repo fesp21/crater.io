@@ -117,7 +117,7 @@ var filters = {
 
   isLoggedIn: function() {
     if (!(Meteor.loggingIn() || Meteor.user())) {
-      throwError('Please Sign In First.')
+      throwError(i18n.t('Please Sign In First.'))
       this.render('signin');
       this.stop(); 
     }
@@ -132,7 +132,7 @@ var filters = {
 
   isAdmin: function() {
     if(!Meteor.loggingIn() && Session.get('settingsLoaded') && !isAdmin()){
-      throwError("Sorry, you  have to be an admin to view this page.")
+      throwError(i18n.t("Sorry, you  have to be an admin to view this page."))
       this.render('no_rights');
       this.stop(); 
     }
@@ -148,7 +148,7 @@ var filters = {
 
   canPost: function () {
     if(!Meteor.loggingIn() && Session.get('settingsLoaded') && !canPost()){
-      throwError("Sorry, you don't have permissions to add new items.")
+      throwError(i18n.t("Sorry, you don't have permissions to add new items."))
       this.render('no_rights');
       this.stop();      
     }
@@ -157,7 +157,7 @@ var filters = {
   canEditPost: function() {
     var post = Posts.findOne(this.params._id);
     if(!Meteor.loggingIn() && Session.get('settingsLoaded') && !currentUserCanEdit(post)){
-      throwError("Sorry, you cannot edit this post.")
+      throwError(i18n.t("Sorry, you cannot edit this post."))
       this.render('no_rights');
       this.stop();
     }
@@ -166,7 +166,7 @@ var filters = {
   canEditComment: function() {
     var comment = Comments.findOne(this.params._id);
     if(!Meteor.loggingIn() && Session.get('settingsLoaded') && !currentUserCanEdit(comment)){
-      throwError("Sorry, you cannot edit this comment.")
+      throwError(i18n.t("Sorry, you cannot edit this comment."))
       this.render('no_rights');
       this.stop();
     }
@@ -186,7 +186,14 @@ var filters = {
 
 Router.load( function () {
   clearSeenErrors(); // set all errors who have already been seen to not show anymore
-  Session.set('categorySlug', null); 
+  Session.set('categorySlug', null);
+
+  // if we're not on the search page itself, clear search query and field
+  if(getCurrentRoute().indexOf('search') == -1){
+    Session.set('searchQuery', '');
+    $('.search-field').val('').blur();
+  }
+
 });
 
 // Before Hooks
@@ -198,7 +205,8 @@ Router.before(filters.nProgressHook, {only: [
   'posts_best', 
   'posts_pending', 
   'posts_digest',
-  'posts_category', 
+  'posts_category',
+  'search',
   'post_page',
   'post_edit',
   'comment_page',
@@ -206,7 +214,8 @@ Router.before(filters.nProgressHook, {only: [
   'comment_reply',
   'user_edit',
   'user_profile',
-  'all-users'
+  'all-users',
+  'logs'
 ]});
 
 Router.before(filters.canView);
@@ -216,7 +225,7 @@ Router.before(filters.isLoggedOut, {only: ['signin', 'signup']});
 Router.before(filters.canPost, {only: ['posts_pending', 'comment_reply', 'post_submit']});
 Router.before(filters.canEditPost, {only: ['post_edit']});
 Router.before(filters.canEditComment, {only: ['comment_edit']});
-Router.before(filters.isAdmin, {only: ['posts_pending', 'all-users', 'settings', 'categories', 'toolbox']});
+Router.before(filters.isAdmin, {only: ['posts_pending', 'all-users', 'settings', 'categories', 'toolbox', 'logs']});
 
 // After Hooks
 
@@ -240,30 +249,24 @@ PostsListController = RouteController.extend({
   template:'posts_list',
   waitOn: function () {
     // take the first segment of the path to get the view, unless it's '/' in which case the view default to 'top'
-    var view = this.path == '/' ? 'top' : this.path.split('/')[1];
-    var limit = this.params.limit || getSetting('postsPerPage', 10);
     // note: most of the time this.params.slug will be empty
-    var parameters = getParameters(view, limit, this.params.slug);
+    this._terms = {
+      view: this.path == '/' ? 'top' : this.path.split('/')[1],
+      limit: this.params.limit || getSetting('postsPerPage', 10),
+      category: this.params.slug,
+      query: Session.get("searchQuery")
+    }
     return [
-      Meteor.subscribe('postsList', parameters.find, parameters.options, Session.get("query")),
-      Meteor.subscribe('postsListUsers', parameters.find, parameters.options)
+      Meteor.subscribe('postsList', this._terms),
+      Meteor.subscribe('postsListUsers', this._terms)
     ]
   },
   data: function () {
-    var view = this.path == '/' ? 'top' : this.path.split('/')[1],
-        limit = this.params.limit || getSetting('postsPerPage', 10),
-        parameters = getParameters(view, limit, this.params.slug),
+    var parameters = getParameters(this._terms),
         posts = Posts.find(parameters.find, parameters.options);
         postsCount = posts.count();
-        
-    Session.set('postsLimit', limit);
-
-    // get posts and decorate them with rank property
-    // note: not actually used; 
-    // posts = posts.map(function (post, index) {
-    //   post.rank = index;
-    //   return post;
-    // });
+  
+    Session.set('postsLimit', this._terms.limit);
 
     return {
       postsList: posts,
@@ -282,16 +285,25 @@ PostsDigestController = RouteController.extend({
   template: 'posts_digest',
   waitOn: function() {
     // if day is set, use that. If not default to today
-    var currentDate = this.params.day ? new Date(this.params.year, this.params.month-1, this.params.day) : Session.get('today');
-    var parameters = getDigestParameters(currentDate);
+    var currentDate = this.params.day ? new Date(this.params.year, this.params.month-1, this.params.day) : Session.get('today'),
+        terms = {
+          view: 'digest',
+          after: moment(currentDate).startOf('day').valueOf(),
+          before: moment(currentDate).endOf('day').valueOf()
+        }
     return [
-      Meteor.subscribe('postsList', parameters.find, parameters.options),
-      Meteor.subscribe('postsListUsers', parameters.find, parameters.options)
+      Meteor.subscribe('postsList', terms),
+      Meteor.subscribe('postsListUsers', terms)
     ]
   },
   data: function() {
-    var currentDate = this.params.day ? new Date(this.params.year, this.params.month-1, this.params.day) : Session.get('today');
-    var parameters = getDigestParameters(currentDate);
+    var currentDate = this.params.day ? new Date(this.params.year, this.params.month-1, this.params.day) : Session.get('today'),
+        terms = {
+          view: 'digest',
+          after: moment(currentDate).startOf('day').valueOf(),
+          before: moment(currentDate).endOf('day').valueOf()
+        },
+        parameters = getParameters(terms);
     Session.set('currentDate', currentDate);
     return {
       posts: Posts.find(parameters.find, parameters.options)
@@ -349,8 +361,13 @@ UserPageController = RouteController.extend({
   data: function() {
     var findById = Meteor.users.findOne(this.params._idOrSlug);
     var findBySlug = Meteor.users.findOne({slug: this.params._idOrSlug});
-    return {
-      user: (typeof findById == "undefined") ? findBySlug : findById
+    if(typeof findById !== "undefined"){
+      // redirect to slug-based URL
+      Router.go(getProfileUrl(findById), {replaceState: true});
+    }else{
+      return {
+        user: (typeof findById == "undefined") ? findBySlug : findById
+      }
     }
   }
 });
@@ -360,6 +377,8 @@ UserPageController = RouteController.extend({
 //--------------------------------------------------------------------------------------------------//
 
 Router.map(function() {
+
+  // -------------------------------------------- Post Lists -------------------------------------------- //
 
   // Top
 
@@ -406,6 +425,12 @@ Router.map(function() {
 
   // TODO: enable /category/new, /category/best, etc. views
 
+  // Search
+
+  this.route('search', {
+    path: '/search/:limit?',
+    controller: PostsListController    
+  });
 
   // Digest
 
@@ -520,9 +545,8 @@ Router.map(function() {
     path: '/all-users/:limit?',
     template: 'users',
     waitOn: function() {
-      var limit = parseInt(this.params.limit) || 20,
-          parameters = getUsersParameters(this.params.filterBy, this.params.sortBy, limit);
-      return Meteor.subscribe('allUsers', parameters.find, parameters.options);
+      var limit = parseInt(this.params.limit) || 20;
+      return Meteor.subscribe('allUsers', this.params.filterBy, this.params.sortBy, limit);
     },
     data: function() {
       var limit = parseInt(this.params.limit) || 20,
@@ -571,4 +595,17 @@ Router.map(function() {
 
   this.route('toolbox');
 
+  // Search Logs
+
+  this.route('logs', {
+    path: '/logs/:limit?',
+    waitOn: function () {
+      var limit = this.params.limit || 100;
+      Session.set('logsLimit', limit);
+      return Meteor.subscribe('searches', limit);
+    },
+    data: function () {
+      return Searches.find({}, {sort: {timestamp: -1}});
+    }
+  });
 });
