@@ -9,6 +9,6 @@
     "crypto-md5": {},
     "iron-router": {},
     "nprogress": {},
-    "phantomjs": {}
+    "fast-render": {}
   }
 }
