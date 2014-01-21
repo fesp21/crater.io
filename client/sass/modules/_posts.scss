@@ -40,7 +40,7 @@
 		text-align:right;
 		font-size:30px;
 		// font-weight:bold;
-		color:black(0.1);
+		color:white(0.1);
 	}
 	.post-upvote{
 		position:absolute;
@@ -296,7 +296,7 @@
 		width:100%;
 		display:block;
 		height:$grid-unit;
-		background:black(0.075);
+		background:white(0.075);
 		text-align:center;
 		color:white;
 		line-height:$grid-unit;
