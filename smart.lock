@@ -12,7 +12,8 @@
       "iron-router": {},
       "nprogress": {},
       "fast-render": {},
-      "phantomjs": {}
+      "phantomjs": {},
+      "spin": {}
     },
     "packages": {
       "momentjs": {
@@ -47,13 +48,18 @@
       },
       "fast-render": {
         "git": "https://github.com/arunoda/meteor-fast-render.git",
-        "tag": "v0.1.12",
-        "commit": "b190f1592401f4084ce54b8f713b134e35a4e0db"
+        "tag": "v0.1.15",
+        "commit": "baf79a3e5863acc3abfe2d0d62fb23b21fe880de"
       },
       "phantomjs": {
         "git": "https://github.com/gadicohen/meteor-phantomjs.git",
         "tag": "v0.0.2",
         "commit": "a72eb79af068dd5d5d617ac71a42bd74e0cb52a4"
+      },
+      "spin": {
+        "git": "https://github.com/SachaG/meteor-spin.git",
+        "tag": "v0.2.2",
+        "commit": "3f655f0016228e4195acc784c45d3e3a247dc39f"
       }
     }
   }
